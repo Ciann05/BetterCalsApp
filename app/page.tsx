@@ -1,0 +1,535 @@
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
+import { useAuth } from '@clerk/nextjs';
+import {
+  ArrowRight,
+  Shield,
+  Sparkles,
+  Activity,
+  HeartPulse,
+  LineChart,
+  History,
+  MessageCircle,
+  UserCog,
+  Settings,
+  LogOut,
+  ChevronDown,
+  Play,
+  BookOpen,
+} from 'lucide-react';
+import BrandHeaderMark from '@/components/BrandHeaderMark';
+import DemoModal from '@/components/DemoModal';
+import LearnMarkersModal from '@/components/LearnMarkersModal';
+import SignedInHome from '@/components/home/SignedInHome';
+
+function FeatureCard({
+  icon,
+  title,
+  description,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div
+      className="relative overflow-hidden rounded-2xl noise card-hover p-5 select-none"
+      style={{
+        backgroundColor: 'var(--surface)',
+        border: '1px solid var(--border)',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 4px 14px rgba(0,0,0,0.03)',
+      }}
+    >
+      <div className="flex items-start gap-3">
+        <div
+          className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+          style={{ backgroundColor: 'var(--accent-subtle)', border: '1px solid rgba(107, 143, 113, 0.22)' }}
+        >
+          {icon}
+        </div>
+        <div className="min-w-0">
+          <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+            {title}
+          </h3>
+          <p className="text-sm mt-1 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+            {description}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StepCard({
+  num,
+  title,
+  description,
+}: {
+  num: number;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div
+      className="rounded-2xl p-5 select-none"
+      style={{
+        backgroundColor: 'var(--bg-warm)',
+        border: '1px solid var(--border-light)',
+      }}
+    >
+      <div className="flex items-start gap-3">
+        <div
+          className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold"
+          style={{
+            background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%)',
+            color: 'var(--text-inverse)',
+            boxShadow: '0 10px 18px rgba(107, 143, 113, 0.18)',
+          }}
+        >
+          {num}
+        </div>
+        <div className="min-w-0">
+          <h4 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+            {title}
+          </h4>
+          <p className="text-sm mt-1 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+            {description}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function HomePage() {
+  const { isSignedIn, isLoaded, signOut } = useAuth();
+  const [demoOpen, setDemoOpen] = useState(false);
+  const [learnOpen, setLearnOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+  const accountRef = useRef<HTMLDivElement>(null);
+  const showDashboard = isLoaded && isSignedIn;
+
+  useEffect(() => {
+    const onDocMouseDown = (event: MouseEvent) => {
+      if (accountRef.current && !accountRef.current.contains(event.target as Node)) {
+        setAccountOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onDocMouseDown);
+    return () => document.removeEventListener('mousedown', onDocMouseDown);
+  }, []);
+
+  const handleSignOut = async () => {
+    setSigningOut(true);
+    try {
+      await signOut({ redirectUrl: '/' });
+    } finally {
+      setSigningOut(false);
+      setAccountOpen(false);
+    }
+  };
+
+  return (
+    <div
+      className="min-h-screen"
+      style={{ background: 'var(--page-gradient-simple)' }}
+    >
+      {/* Header */}
+      <header
+        className="sticky top-0 z-30"
+        style={{
+          backgroundColor: 'var(--header-bg)',
+          backdropFilter: 'blur(20px) saturate(1.3)',
+          WebkitBackdropFilter: 'blur(20px) saturate(1.3)',
+          borderBottom: '1px solid var(--header-border)',
+        }}
+      >
+        <div className="relative w-full pl-2 sm:pl-3 pr-4 sm:pr-5 py-3 sm:py-3.5 flex items-center justify-between gap-2 sm:gap-3">
+          <BrandHeaderMark href="/" sizePx={32} />
+          {showDashboard && (
+            <div className="absolute inset-x-0 hidden sm:flex items-center justify-center pointer-events-none">
+              <h1
+                className="font-display text-xl sm:text-2xl font-semibold tracking-tight"
+                style={{ color: 'var(--text-primary)' }}
+              >
+                Dashboard
+              </h1>
+            </div>
+          )}
+
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+            {isSignedIn ? (
+              <>
+                <Link
+                  href="/history"
+                  className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold btn-press"
+                  style={{
+                    background: 'var(--border-light)',
+                    color: 'var(--text-primary)',
+                    border: '1px solid var(--border)',
+                  }}
+                >
+                  <History className="w-3.5 h-3.5" style={{ color: 'var(--text-tertiary)' }} />
+                  History
+                </Link>
+                <div ref={accountRef} className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setAccountOpen((open) => !open)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold btn-press"
+                    style={{
+                      background: 'var(--border-light)',
+                      color: 'var(--text-primary)',
+                      border: '1px solid var(--border)',
+                    }}
+                  >
+                    <span className="hidden sm:inline">Account</span>
+                    <UserCog className="w-3.5 h-3.5 sm:hidden" style={{ color: 'var(--text-tertiary)' }} />
+                    <ChevronDown className={`w-3.5 h-3.5 transition-transform ${accountOpen ? 'rotate-180' : ''}`} style={{ color: 'var(--text-tertiary)' }} />
+                  </button>
+                  {accountOpen && (
+                    <div
+                      className="absolute right-0 mt-2 w-44 rounded-xl p-1.5 z-50"
+                      style={{
+                        backgroundColor: 'var(--surface)',
+                        border: '1px solid var(--border)',
+                        boxShadow: '0 10px 28px rgba(0,0,0,0.12)',
+                      }}
+                    >
+                      <Link
+                        href="/history"
+                        onClick={() => setAccountOpen(false)}
+                        className="sm:hidden w-full inline-flex items-center gap-2 rounded-lg px-2.5 py-2 text-xs font-semibold transition-colors"
+                        style={{ color: 'var(--text-primary)' }}
+                      >
+                        <History className="w-3.5 h-3.5" style={{ color: 'var(--text-tertiary)' }} />
+                        History
+                      </Link>
+                      <Link
+                        href="/analyze?editProfile=1"
+                        onClick={() => setAccountOpen(false)}
+                        className="w-full inline-flex items-center gap-2 rounded-lg px-2.5 py-2 text-xs font-semibold transition-colors"
+                        style={{ color: 'var(--text-primary)' }}
+                      >
+                        <UserCog className="w-3.5 h-3.5" style={{ color: 'var(--text-tertiary)' }} />
+                        Edit profile
+                      </Link>
+                      <Link
+                        href="/settings"
+                        onClick={() => setAccountOpen(false)}
+                        className="w-full inline-flex items-center gap-2 rounded-lg px-2.5 py-2 text-xs font-semibold transition-colors"
+                        style={{ color: 'var(--text-primary)' }}
+                      >
+                        <Settings className="w-3.5 h-3.5" style={{ color: 'var(--text-tertiary)' }} />
+                        Settings
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={handleSignOut}
+                        disabled={signingOut}
+                        className="w-full inline-flex items-center gap-2 rounded-lg px-2.5 py-2 text-xs font-semibold transition-colors disabled:opacity-60"
+                        style={{ color: 'var(--text-primary)' }}
+                      >
+                        <LogOut className="w-3.5 h-3.5" style={{ color: 'var(--text-tertiary)' }} />
+                        {signingOut ? 'Signing out...' : 'Sign out'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/sign-in"
+                  className="inline-flex px-3 sm:px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-colors"
+                  style={{ color: 'var(--text-secondary)' }}
+                >
+                  Sign in
+                </Link>
+                <Link
+                  href="/sign-up"
+                  className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1.5 rounded-xl text-xs font-semibold btn-press"
+                  style={{
+                    background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%)',
+                    color: 'var(--text-inverse)',
+                    boxShadow: '0 2px 6px rgba(107, 143, 113, 0.2), inset 0 1px 0 rgba(255,255,255,0.15)',
+                  }}
+                >
+                  Sign up
+                  <ArrowRight className="hidden sm:inline-block w-3.5 h-3.5" />
+                </Link>
+              </>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {showDashboard ? (
+        <SignedInHome />
+      ) : (
+      <>
+      {/* Hero */}
+      <main className="max-w-6xl mx-auto px-5 pt-10 pb-16">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
+          <div className="anim-fade-up">
+            <div
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold select-none"
+              style={{ backgroundColor: 'var(--accent-subtle)', color: 'var(--accent)', border: '1px solid rgba(107, 143, 113, 0.22)' }}
+            >
+              <Sparkles className="w-4 h-4" />
+              Personalized from your profile + labs
+            </div>
+
+            <h1
+              className="font-display text-4xl sm:text-5xl leading-[1.05] mt-4 select-none"
+              style={{ color: 'var(--text-primary)' }}
+            >
+              Understand your bloodwork and calories in minutes.
+            </h1>
+            <p className="text-base sm:text-lg mt-4 leading-relaxed select-none" style={{ color: 'var(--text-secondary)' }}>
+              BetterCals turns your profile and lab markers into a simple health score, targeted insights, and a clear calorie + macro plan you can follow this week.
+            </p>
+
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              <Link
+                href="/analyze"
+                className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl text-sm font-semibold btn-press"
+                style={{
+                  background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%)',
+                  color: 'var(--text-inverse)',
+                  boxShadow: '0 16px 34px rgba(107, 143, 113, 0.18), inset 0 1px 0 rgba(255,255,255,0.16)',
+                }}
+              >
+                Start free analysis
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+
+              {isSignedIn ? (
+                <>
+                  <Link
+                    href="/history"
+                    className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl text-sm font-semibold btn-press"
+                    style={{
+                      background: 'var(--border-light)',
+                      color: 'var(--text-primary)',
+                      border: '1px solid var(--border)',
+                    }}
+                  >
+                    View history
+                    <LineChart className="w-4 h-4" style={{ color: 'var(--text-tertiary)' }} />
+                  </Link>
+                  <Link
+                    href="/coach-history"
+                    className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl text-sm font-semibold btn-press"
+                    style={{
+                      background: 'var(--border-light)',
+                      color: 'var(--text-primary)',
+                      border: '1px solid var(--border)',
+                    }}
+                  >
+                    Coach history
+                    <MessageCircle className="w-4 h-4" style={{ color: 'var(--text-tertiary)' }} />
+                  </Link>
+                </>
+              ) : (
+                <button
+                  onClick={() => setDemoOpen(true)}
+                  className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl text-sm font-semibold btn-press"
+                  style={{
+                    background: 'var(--border-light)',
+                    color: 'var(--text-primary)',
+                    border: '1px solid var(--border)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <Play className="w-4 h-4" style={{ color: 'var(--accent)' }} />
+                  See it in action
+                </button>
+              )}
+            </div>
+
+            <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-xs" style={{ color: 'var(--text-tertiary)' }}>
+              <span className="inline-flex items-center gap-2">
+                <Shield className="w-4 h-4" />
+                Progress saved locally by default
+              </span>
+              <span className="inline-flex items-center gap-2">
+                <Activity className="w-4 h-4" />
+                Calorie targets + macros
+              </span>
+              <span className="inline-flex items-center gap-2">
+                <HeartPulse className="w-4 h-4" />
+                Cardiovascular risk when eligible
+              </span>
+            </div>
+          </div>
+
+          <div className="anim-fade-up delay-1">
+            <div
+              className="relative overflow-hidden rounded-3xl noise p-6 sm:p-8"
+              style={{
+                background: 'var(--card-bg)',
+                backdropFilter: 'blur(20px) saturate(1.3)',
+                WebkitBackdropFilter: 'blur(20px) saturate(1.3)',
+                border: '1px solid var(--card-border)',
+                boxShadow: 'var(--card-shadow-heavy)',
+              }}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                    What you get
+                  </h2>
+                  <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
+                    A clear plan, not a wall of numbers.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setLearnOpen(true)}
+                  className="flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold btn-press transition-colors"
+                  style={{
+                    background: 'var(--accent-subtle)',
+                    color: 'var(--accent)',
+                    border: '1px solid rgba(107, 143, 113, 0.22)',
+                  }}
+                >
+                  <BookOpen className="w-3.5 h-3.5" />
+                  Learn
+                </button>
+              </div>
+
+              <div className="mt-5 grid grid-cols-1 gap-3">
+                <FeatureCard
+                  icon={<Activity className="w-5 h-5" style={{ color: 'var(--accent)' }} />}
+                  title="TDEE + target calories"
+                  description="Maintenance calories and goal-based targets using the Mifflin-St Jeor equation."
+                />
+                <FeatureCard
+                  icon={<HeartPulse className="w-5 h-5" style={{ color: 'var(--status-danger)' }} />}
+                  title="Blood marker score + insights"
+                  description="See which markers drive your results and what to do next (nutrition + lifestyle)."
+                />
+                <FeatureCard
+                  icon={<LineChart className="w-5 h-5" style={{ color: 'var(--accent-warm)' }} />}
+                  title="Trends over time (signed-in)"
+                  description="Save analyses and track your score and markers across time with forecasts."
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* How it works */}
+        <section className="mt-14">
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <h2 className="font-display text-2xl font-semibold select-none" style={{ color: 'var(--text-primary)' }}>
+                How it works
+              </h2>
+              <p className="text-sm mt-1 select-none" style={{ color: 'var(--text-secondary)' }}>
+                Fast, private, and designed for action.
+              </p>
+            </div>
+            <Link
+              href="/analyze"
+              className="hidden sm:inline-flex items-center gap-2 text-sm font-semibold hover:opacity-80 transition-opacity"
+              style={{ color: 'var(--accent)' }}
+            >
+              Start free analysis <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+
+          <div className="mt-5 grid grid-cols-1 md:grid-cols-3 gap-3">
+            <StepCard
+              num={1}
+              title="Enter your profile"
+              description="Age, height, weight, activity, and goal to compute calories + macros."
+            />
+            <StepCard
+              num={2}
+              title="Upload labs (optional)"
+              description="Upload a report for extraction or enter markers manually."
+            />
+            <StepCard
+              num={3}
+              title="Get your results"
+              description="Health score, key drivers, recommendations, and (when eligible) cardiovascular risk."
+            />
+          </div>
+        </section>
+
+        {/* Trust */}
+        <section className="mt-14">
+          <div
+            className="rounded-3xl p-6 sm:p-8 noise select-none"
+            style={{
+              backgroundColor: 'var(--surface)',
+              border: '1px solid var(--border)',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 4px 14px rgba(0,0,0,0.03)',
+            }}
+          >
+            <div className="flex items-start gap-3">
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{ backgroundColor: 'var(--bg-warm)', border: '1px solid var(--border-light)' }}
+              >
+                <Shield className="w-5 h-5" style={{ color: 'var(--text-tertiary)' }} />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                  Privacy + transparency
+                </h3>
+                <p className="text-sm mt-1 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                  Your progress is saved locally by default. If you sign in, you can optionally save results to your account to track trends.
+                  BetterCals provides estimates for informational purposes only and is not medical advice.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+      </>
+      )}
+
+      {/* Footer */}
+      <footer className="py-10 select-none" style={{ borderTop: '1px solid var(--border-light)' }}>
+        <div className="max-w-6xl mx-auto px-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <BrandHeaderMark href="/" sizePx={30} />
+          <div className="text-xs space-y-2 sm:text-right" style={{ color: 'var(--text-tertiary)' }}>
+            <p>BetterCals provides estimates for informational purposes only. Always consult healthcare professionals for medical advice.</p>
+            <p className="flex flex-wrap gap-x-3 gap-y-1 sm:justify-end">
+              <Link href="/about" className="underline underline-offset-2 hover:opacity-80" style={{ color: 'var(--accent-hover)' }}>
+                About
+              </Link>
+              <span aria-hidden className="hidden sm:inline">
+                ·
+              </span>
+              <Link href="/contact" className="underline underline-offset-2 hover:opacity-80" style={{ color: 'var(--accent-hover)' }}>
+                Contact
+              </Link>
+              <span aria-hidden className="hidden sm:inline">
+                ·
+              </span>
+              <Link href="/privacy" className="underline underline-offset-2 hover:opacity-80" style={{ color: 'var(--accent-hover)' }}>
+                Privacy Policy
+              </Link>
+              <span aria-hidden className="hidden sm:inline">
+                ·
+              </span>
+              <Link href="/terms" className="underline underline-offset-2 hover:opacity-80" style={{ color: 'var(--accent-hover)' }}>
+                Terms of Service
+              </Link>
+            </p>
+          </div>
+        </div>
+      </footer>
+
+      <DemoModal open={demoOpen} onCloseAction={() => setDemoOpen(false)} />
+      <LearnMarkersModal open={learnOpen} onCloseAction={() => setLearnOpen(false)} />
+    </div>
+  );
+}

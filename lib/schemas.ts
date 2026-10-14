@@ -1,0 +1,347 @@
+import { z } from 'zod';
+import { PLAUSIBLE_RANGES } from '@/lib/bloodParser';
+
+// Helper: build a Zod number schema from a plausible range entry
+function rangeField(key: string) {
+  const r = PLAUSIBLE_RANGES[key as keyof typeof PLAUSIBLE_RANGES];
+  if (!r) return z.number().optional();
+  return z.number().min(r.min).max(r.max).optional();
+}
+
+// ── Blood Markers ──────────────────────────────────────────────────────────
+export const bloodMarkersSchema = z.object({
+  glucose: rangeField('glucose'),
+  hba1c: rangeField('hba1c'),
+  totalCholesterol: rangeField('totalCholesterol'),
+  nonHdl: rangeField('nonHdl'),
+  ldl: rangeField('ldl'),
+  hdl: rangeField('hdl'),
+  triglycerides: rangeField('triglycerides'),
+  apoB: rangeField('apoB'),
+  hsCRP: rangeField('hsCRP'),
+  tsh: rangeField('tsh'),
+  vitaminD: rangeField('vitaminD'),
+  vitaminB12: rangeField('vitaminB12'),
+  ferritin: rangeField('ferritin'),
+  iron: rangeField('iron'),
+  alt: rangeField('alt'),
+  ast: rangeField('ast'),
+  albumin: rangeField('albumin'),
+  creatinine: rangeField('creatinine'),
+  uricAcid: rangeField('uricAcid'),
+  fastingInsulin: rangeField('fastingInsulin'),
+  lymphocytePct: rangeField('lymphocytePct'),
+  mcv: rangeField('mcv'),
+  rdw: rangeField('rdw'),
+  alkalinePhosphatase: rangeField('alkalinePhosphatase'),
+  whiteBloodCells: rangeField('whiteBloodCells'),
+}).strict();
+
+// ── User Profile ───────────────────────────────────────────────────────────
+export const userProfileSchema = z.object({
+  age: z.number().int().min(13).max(120),
+  gender: z.enum(['male', 'female']),
+  weightLbs: z.number().min(40).max(700),
+  heightFeet: z.number().int().min(3).max(8),
+  heightInches: z.number().min(0).max(11.99),
+  activityLevel: z.enum(['sedentary', 'light', 'moderate', 'active', 'very-active']),
+  goal: z.enum(['lose-aggressive', 'lose-moderate', 'lose-mild', 'maintain', 'gain-lean', 'gain-aggressive']),
+  smoker: z.boolean().optional(),
+  diabetic: z.boolean().optional(),
+  bloodPressureSystolic: z.number().min(60).max(300).optional(),
+  treatedForHypertension: z.boolean().optional(),
+  restingHeartRate: z.number().int().min(30).max(220).optional(),
+  alcoholDrinksPerWeek: z.number().min(0).max(100).optional(),
+  familyHeartDisease: z.boolean().optional(),
+  takingHRT: z.boolean().optional(),
+  chronicKidneyDisease: z.boolean().optional(),
+  waistInches: z.number().min(15).max(80).optional(),
+  hipInches: z.number().min(20).max(90).optional(),
+  bodyFatPercentage: z.number().min(2).max(60).optional(),
+  advancedActivity: z.boolean().optional(),
+  dailySteps: z.number().int().min(0).max(100000).optional(),
+  occupationType: z.enum(['desk', 'standing', 'light-labor', 'heavy-labor']).optional(),
+  exerciseTemplate: z.enum(['strength-focused', 'cardio-focused', 'balanced', 'light-recovery', 'athlete', 'custom']).optional(),
+  exerciseSessions: z.array(z.object({
+    type: z.enum(['strength', 'cardio-low', 'cardio-moderate', 'cardio-high', 'sports', 'flexibility']),
+    durationMinutes: z.number().min(5).max(300),
+    frequencyPerWeek: z.number().int().min(1).max(14),
+  })).optional(),
+  focusGoal: z.array(z.enum(['fat-loss', 'muscle-gain', 'metabolic-health', 'endurance', 'longevity', 'general-wellness'])).optional(),
+  sleepHoursAvg: z.number().min(2).max(16).optional(),
+  stressLevel: z.enum(['low', 'moderate', 'high', 'very-high']).optional(),
+  dietaryPattern: z.enum(['omnivore', 'vegetarian', 'vegan', 'pescatarian', 'keto', 'low-carb']).optional(),
+  menstrualStatus: z.enum(['regular', 'irregular', 'postmenopausal', 'not-applicable']).optional(),
+  takingStatins: z.boolean().optional(),
+  takingThyroidMeds: z.boolean().optional(),
+  allergies: z.array(z.enum([
+    'peanuts', 'tree-nuts', 'dairy', 'gluten', 'shellfish', 'eggs', 'soy', 'fish', 'sesame',
+  ])).max(9).optional(),
+  dislikes: z.array(z.string().min(1).max(40)).max(10).optional(),
+  preferredCuisines: z.array(z.enum([
+    'mediterranean', 'asian', 'mexican', 'indian', 'american', 'middle-eastern', 'no-preference',
+  ])).max(7).optional(),
+  cookingTime: z.enum(['quick', 'moderate', 'elaborate']).optional(),
+});
+
+// ── API Request Schemas ────────────────────────────────────────────────────
+
+const coachPrioritySchema = z.object({
+  title: z.string().min(1).max(200),
+  reason: z.string().min(1).max(800),
+  relatedMarkers: z.array(z.string()).max(12),
+});
+
+const coachWeeklyActionSchema = z.object({
+  title: z.string().min(1).max(200),
+  details: z.string().min(1).max(800),
+});
+
+export const coachPlanSchema = z.object({
+  summary: z.string().min(1).max(1200),
+  priorities: z.array(coachPrioritySchema).min(1).max(6),
+  weeklyActions: z.array(coachWeeklyActionSchema).min(1).max(8),
+  whyItMatters: z.array(z.string().min(1).max(500)).min(1).max(6),
+  guardrails: z.array(z.string().min(1).max(500)).min(1).max(8),
+});
+
+const coachMessageSchema = z.object({
+  role: z.enum(['assistant', 'user']),
+  source: z.enum(['coach_engine', 'llm_chat']),
+  text: z.string().min(1).max(4000),
+  createdAt: z.string().optional(),
+});
+
+const coachHistorySourceSchema = z.enum(['llm_chat', 'live_mic', 'live_model']);
+const workoutConstraintOptionSchema = z.enum([
+  'none',
+  'knee-discomfort',
+  'lower-back-sensitivity',
+  'shoulder-limitation',
+  'impact-sensitive-joints',
+  'balance-concerns',
+  'wrist-elbow-sensitivity',
+]);
+const workoutPreferenceOptionSchema = z.enum([
+  'strength-training',
+  'walking-cardio',
+  'mobility-yoga',
+  'hiit-lite',
+  'mixed-balanced',
+]);
+const workoutIntensitySchema = z.enum(['low', 'moderate', 'moderate-high']);
+
+/** POST /api/analyses — save a new analysis */
+export const saveAnalysisSchema = z.object({
+  profile: userProfileSchema,
+  markers: bloodMarkersSchema,
+  result: z.object({
+    tdee: z.object({
+      bmr: z.number(),
+      tdee: z.number(),
+      targetCalories: z.number(),
+      activityMultiplier: z.number(),
+      neatCalories: z.number().optional(),
+      exerciseCalories: z.number().optional(),
+    }),
+    healthScore: z.object({
+      overall: z.number(),
+      metabolic: z.number(),
+      cardiovascular: z.number(),
+      hormonal: z.number(),
+      nutritional: z.number(),
+      hepatic: z.number(),
+      renal: z.number(),
+    }),
+    insights: z.array(z.object({
+      type: z.enum(['info', 'warning', 'success', 'danger']),
+      title: z.string(),
+      description: z.string(),
+      recommendation: z.string().optional(),
+    })),
+    deficiencies: z.array(z.string()),
+    risks: z.array(z.string()),
+    calorieTiers: z.array(z.object({
+      label: z.string(),
+      weeklyChange: z.string(),
+      dailyCalories: z.number(),
+      dailyChange: z.number(),
+    })),
+    macros: z.object({
+      protein: z.object({ grams: z.number(), pct: z.number() }),
+      carbs: z.object({ grams: z.number(), pct: z.number() }),
+      fat: z.object({ grams: z.number(), pct: z.number() }),
+      calories: z.number(),
+      recompMode: z.boolean().optional(),
+    }),
+    recommendations: z.object({}).passthrough(),
+    derivedMarkers: z.object({
+      ldl: z.number().optional(),
+      nonHdl: z.number().optional(),
+    }).optional(),
+    ascvdRiskScore: z.number().optional(),
+    ascvdRiskReason: z.string().optional(),
+    usedAverageMarkers: z.boolean().optional(),
+    estimatedFromQuestionnaire: z.boolean().optional(),
+    phenoAge: z.object({
+      phenoAge: z.number(),
+      chronologicalAge: z.number(),
+      delta: z.number(),
+      mortalityScore: z.number(),
+      usedEstimates: z.boolean(),
+      missingMarkers: z.array(z.string()),
+    }).optional(),
+    actionPlan: z.array(z.object({
+      id: z.string(),
+      title: z.string(),
+      rationale: z.string(),
+      priority: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+      relatedMarkers: z.array(z.string()),
+    })).optional(),
+    dietPlan: z.object({
+      generatedAt: z.string(),
+      summary: z.string().max(1000),
+      meals: z.array(z.object({
+        slot: z.enum(['breakfast', 'lunch', 'dinner', 'snack']),
+        name: z.string().max(160),
+        timeWindow: z.string().max(60).optional(),
+        calories: z.number(),
+        protein: z.number(),
+        carbs: z.number(),
+        fat: z.number(),
+        ingredients: z.array(z.string().max(200)).max(20),
+        prepNotes: z.string().max(800),
+        rationale: z.string().max(400).optional(),
+      })).max(8),
+      hydrationOz: z.number(),
+      keyPrinciples: z.array(z.string().max(300)).max(8),
+      flags: z.array(z.string().max(120)).max(8).optional(),
+      modelUsed: z.string().max(120).optional(),
+    }).optional(),
+    workoutPlan: z.object({
+      generatedAt: z.string(),
+      summary: z.string().max(1200),
+      weeklyGoal: z.string().max(240),
+      sessions: z.array(z.object({
+        day: z.string().max(40),
+        focus: z.string().max(200),
+        durationMinutes: z.number().int().min(5).max(240),
+        intensity: workoutIntensitySchema,
+        warmup: z.array(z.string().max(200)).max(10),
+        main: z.array(z.string().max(200)).max(20),
+        cooldown: z.array(z.string().max(200)).max(10),
+        modifications: z.array(z.string().max(240)).max(12).optional(),
+      })).max(14),
+      recoveryNotes: z.array(z.string().max(300)).max(12),
+      safetyNotes: z.array(z.string().max(300)).max(12),
+      equipmentNotes: z.array(z.string().max(240)).max(12).optional(),
+      modelUsed: z.string().max(120).optional(),
+    }).optional(),
+    coach: z.object({
+      plan: coachPlanSchema,
+      messages: z.array(z.object({
+        id: z.string(),
+        role: z.enum(['assistant', 'user']),
+        source: z.enum(['coach_engine', 'llm_chat']),
+        text: z.string(),
+        createdAt: z.string(),
+      })).max(40),
+      telemetry: z.array(z.object({
+        model: z.string(),
+        latencyMs: z.number(),
+        usage: z.object({
+          promptTokens: z.number().optional(),
+          completionTokens: z.number().optional(),
+          totalTokens: z.number().optional(),
+        }).optional(),
+        safetyState: z.enum(['safe', 'blocked', 'unknown']).optional(),
+        fallbackUsed: z.boolean(),
+      })).optional(),
+    }).optional(),
+  }),
+  coach: z.object({
+    plan: coachPlanSchema,
+    messages: z.array(z.object({
+      id: z.string(),
+      role: z.enum(['assistant', 'user']),
+      source: z.enum(['coach_engine', 'llm_chat']),
+      text: z.string(),
+      createdAt: z.string(),
+    })).max(40),
+    telemetry: z.array(z.object({
+      model: z.string(),
+      latencyMs: z.number(),
+      usage: z.object({
+        promptTokens: z.number().optional(),
+        completionTokens: z.number().optional(),
+        totalTokens: z.number().optional(),
+      }).optional(),
+      safetyState: z.enum(['safe', 'blocked', 'unknown']).optional(),
+      fallbackUsed: z.boolean(),
+    })).optional(),
+  }).optional(),
+});
+
+/** PUT /api/profile — upsert user profile */
+export const saveProfileSchema = z.object({
+  profile: userProfileSchema,
+});
+
+/** Adherence checklist schemas */
+const adherenceDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Expected YYYY-MM-DD');
+
+export const upsertAdherenceSchema = z.object({
+  date: adherenceDateSchema,
+  checks: z.record(z.string().min(1).max(40), z.enum(['yes', 'no'])),
+  totalCount: z.number().int().min(1).max(50),
+});
+
+export const listAdherenceQuerySchema = z.object({
+  from: adherenceDateSchema.optional(),
+  to: adherenceDateSchema.optional(),
+  limit: z.coerce.number().int().min(1).max(180).default(60),
+});
+
+export const coachInitialRequestSchema = z.object({
+  profile: userProfileSchema,
+  markers: bloodMarkersSchema,
+  result: saveAnalysisSchema.shape.result,
+});
+
+export const coachChatRequestSchema = z.object({
+  analysisSnapshot: z.object({
+    profile: userProfileSchema,
+    markers: bloodMarkersSchema,
+    result: saveAnalysisSchema.shape.result,
+  }),
+  coachPlan: coachPlanSchema,
+  messages: z.array(coachMessageSchema).max(20),
+  userQuestion: z.string().min(1).max(1200),
+});
+
+export const saveCoachHistoryEventSchema = z.object({
+  source: coachHistorySourceSchema,
+  role: z.enum(['assistant', 'user']),
+  message: z.string().min(1).max(4000),
+  analysisId: z.number().int().positive().optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+});
+
+export const listCoachHistoryQuerySchema = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  limit: z.coerce.number().int().min(1).max(200).default(50),
+});
+
+export const generateWorkoutPlanRequestSchema = z.object({
+  analysisId: z.number().int().positive().optional(),
+  profile: userProfileSchema,
+  markers: bloodMarkersSchema,
+  result: saveAnalysisSchema.shape.result,
+  constraints: z.object({
+    selected: z.array(workoutConstraintOptionSchema).max(7),
+    notes: z.string().max(600).optional(),
+  }),
+  preferences: z.object({
+    selected: z.array(workoutPreferenceOptionSchema).min(1).max(5),
+  }),
+});

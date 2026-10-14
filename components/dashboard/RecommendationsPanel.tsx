@@ -1,0 +1,381 @@
+'use client';
+
+import { PersonalizedRecs, TDEEResult } from '@/types';
+import { Activity, Droplets, Scale, HeartPulse, Pill, Dumbbell, Clock, Utensils, Flame, Footprints, Zap } from 'lucide-react';
+
+interface RecommendationsPanelProps {
+  recs: PersonalizedRecs;
+  tdee?: TDEEResult;
+}
+
+function getBmiColor(category: string): string {
+  switch (category) {
+    case 'Underweight': return 'var(--status-info)';
+    case 'Normal': return 'var(--status-normal)';
+    case 'Overweight': return 'var(--status-warning)';
+    case 'Obese': return 'var(--status-danger)';
+    default: return 'var(--text-secondary)';
+  }
+}
+
+function getBmiPosition(bmi: number): number {
+  // Map BMI 15-40 to 0-100%
+  return Math.max(0, Math.min(100, ((bmi - 15) / 25) * 100));
+}
+
+function getRatioColor(interpretation: string | undefined | null): string {
+  if (!interpretation) return 'var(--text-secondary)';
+  if (interpretation === 'Optimal') return 'var(--status-normal)';
+  if (interpretation === 'Normal') return 'var(--accent-warm)';
+  if (interpretation === 'Borderline' || interpretation === 'Elevated') return 'var(--status-warning)';
+  if (interpretation === 'Early Insulin Resistance') return 'var(--status-warning)';
+  if (interpretation === 'Significant Insulin Resistance') return 'var(--status-danger)';
+  if (interpretation === 'Low Insulin Resistance Risk') return 'var(--status-normal)';
+  if (interpretation === 'Moderate Insulin Resistance Risk') return 'var(--status-warning)';
+  if (interpretation === 'High Insulin Resistance Risk') return 'var(--status-danger)';
+  if (interpretation.startsWith('High Risk')) return 'var(--status-danger)';
+  return 'var(--text-secondary)';
+}
+
+export default function RecommendationsPanel({ recs, tdee }: RecommendationsPanelProps) {
+  const glasses = Math.round(recs.waterIntakeOz / 8);
+  const bmiColor = getBmiColor(recs.bmiCategory);
+  const bmiPos = getBmiPosition(recs.bmi);
+  const tgHdlColor =
+    recs.tgHdlInterpretation === null ? 'var(--text-secondary)' :
+    recs.tgHdlInterpretation === 'Optimal' ? 'var(--status-normal)' :
+    recs.tgHdlInterpretation === 'Borderline' ? 'var(--status-warning)' :
+    'var(--status-danger)';
+
+  return (
+    <div
+      className="relative overflow-hidden rounded-2xl noise"
+      style={{
+        backgroundColor: 'var(--surface)',
+        border: '1px solid var(--border)',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 4px 14px rgba(0,0,0,0.03)',
+      }}
+    >
+      <div className="px-5 py-4" style={{ borderBottom: '1px solid var(--border-light)' }}>
+        <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Personalized Recommendations</h3>
+      </div>
+
+      <div className="px-5 py-5 space-y-6">
+        {/* TDEE Breakdown (shown when advanced activity mode was used) */}
+        {tdee && tdee.neatCalories !== undefined && tdee.exerciseCalories !== undefined && (
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <Zap className="w-4 h-4" style={{ color: 'var(--accent)' }} />
+              <span className="text-[10px] font-bold uppercase tracking-[0.15em]" style={{ color: 'var(--text-tertiary)' }}>
+                TDEE Breakdown
+              </span>
+            </div>
+            <div className="flex items-baseline gap-2 mb-3">
+              <span className="font-display text-3xl" style={{ color: 'var(--accent)' }}>{tdee.tdee}</span>
+              <span className="text-sm" style={{ color: 'var(--text-tertiary)' }}>kcal/day</span>
+            </div>
+            <div className="space-y-1.5">
+              {[
+                { label: 'Basal Metabolic Rate (BMR)', value: tdee.bmr, icon: Activity },
+                { label: 'Non-Exercise Activity (NEAT)', value: tdee.neatCalories, icon: Footprints },
+                { label: 'Exercise', value: tdee.exerciseCalories, icon: Dumbbell },
+              ].map((item) => (
+                <div key={item.label} className="flex items-center justify-between py-1.5">
+                  <div className="flex items-center gap-2">
+                    <item.icon className="w-3.5 h-3.5" style={{ color: 'var(--text-tertiary)' }} />
+                    <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{item.label}</span>
+                  </div>
+                  <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                    {item.value} kcal
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* BMI */}
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <Scale className="w-4 h-4" style={{ color: 'var(--text-tertiary)' }} />
+            <span className="text-[10px] font-bold uppercase tracking-[0.15em]" style={{ color: 'var(--text-tertiary)' }}>
+              Body Mass Index
+            </span>
+          </div>
+          <div className="flex items-baseline gap-2 mb-2">
+            <span className="font-display text-3xl" style={{ color: bmiColor }}>{recs.bmi}</span>
+            <span
+              className="text-xs font-semibold px-2 py-0.5 rounded-full"
+              style={{ backgroundColor: `${bmiColor}18`, color: bmiColor }}
+            >
+              {recs.bmiCategory}
+            </span>
+          </div>
+          <div className="relative h-2 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--border-light)' }}>
+            <div
+              className="absolute inset-y-0 rounded-full"
+              style={{ left: '14%', width: '40%', backgroundColor: 'var(--status-normal-bg)', border: '1px solid var(--status-normal-border)' }}
+            />
+            <div
+              className="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full border-2 needle-pop"
+              style={{
+                left: `${bmiPos}%`,
+                transform: `translateX(-50%) translateY(-50%)`,
+                backgroundColor: bmiColor,
+                borderColor: 'var(--surface)',
+                boxShadow: `0 0 0 1px ${bmiColor}33`,
+              }}
+            />
+          </div>
+          <div className="flex justify-between mt-1">
+            <span className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>15</span>
+            <span className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>40</span>
+          </div>
+        </div>
+
+        {/* Water Intake */}
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <Droplets className="w-4 h-4" style={{ color: 'var(--status-info)' }} />
+            <span className="text-[10px] font-bold uppercase tracking-[0.15em]" style={{ color: 'var(--text-tertiary)' }}>
+              Daily Water Intake
+            </span>
+          </div>
+          <div className="flex items-baseline gap-2">
+            <span className="font-display text-2xl" style={{ color: 'var(--status-info)' }}>{recs.waterIntakeOz}</span>
+            <span className="text-sm" style={{ color: 'var(--text-tertiary)' }}>oz/day</span>
+            <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>({glasses} glasses)</span>
+          </div>
+        </div>
+
+        {/* Ratios */}
+        {(recs.ldlHdlRatio !== null && recs.ldlHdlInterpretation !== null) ||
+        (recs.tgHdlRatio !== null && recs.tgHdlInterpretation !== null) ||
+        (recs.homaIR !== null && recs.homaIRInterpretation !== null) ||
+        (recs.tyg !== null && recs.tygInterpretation !== null) ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            {/* LDL/HDL */}
+            {recs.ldlHdlRatio !== null && recs.ldlHdlInterpretation !== null && (
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <HeartPulse className="w-4 h-4" style={{ color: 'var(--accent-rose)' }} />
+                  <span className="text-[10px] font-bold uppercase tracking-[0.15em]" style={{ color: 'var(--text-tertiary)' }}>
+                    LDL/HDL Ratio
+                  </span>
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <span className="font-display text-2xl" style={{ color: getRatioColor(recs.ldlHdlInterpretation) }}>
+                    {recs.ldlHdlRatio}
+                  </span>
+                  <span
+                    className="text-xs font-semibold px-2 py-0.5 rounded-full"
+                    style={{
+                      backgroundColor: `${getRatioColor(recs.ldlHdlInterpretation)}18`,
+                      color: getRatioColor(recs.ldlHdlInterpretation),
+                    }}
+                  >
+                    {recs.ldlHdlInterpretation}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* TG/HDL */}
+            {recs.tgHdlRatio !== null && recs.tgHdlInterpretation !== null && (
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <HeartPulse className="w-4 h-4" style={{ color: 'var(--accent-warm)' }} />
+                  <span className="text-[10px] font-bold uppercase tracking-[0.15em]" style={{ color: 'var(--text-tertiary)' }}>
+                    TG/HDL Ratio
+                  </span>
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <span className="font-display text-2xl" style={{ color: tgHdlColor }}>
+                    {recs.tgHdlRatio}
+                  </span>
+                  <span
+                    className="text-xs font-semibold px-2 py-0.5 rounded-full"
+                    style={{
+                      backgroundColor: `${tgHdlColor}18`,
+                      color: tgHdlColor,
+                    }}
+                  >
+                    {recs.tgHdlInterpretation}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* HOMA-IR */}
+            {recs.homaIR !== null && recs.homaIRInterpretation !== null && (
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <Activity className="w-4 h-4" style={{ color: 'var(--accent-warm)' }} />
+                  <span className="text-[10px] font-bold uppercase tracking-[0.15em]" style={{ color: 'var(--text-tertiary)' }}>
+                    HOMA-IR
+                  </span>
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <span className="font-display text-2xl" style={{ color: getRatioColor(recs.homaIRInterpretation) }}>
+                    {recs.homaIR}
+                  </span>
+                  <span
+                    className="text-xs font-semibold px-2 py-0.5 rounded-full"
+                    style={{
+                      backgroundColor: `${getRatioColor(recs.homaIRInterpretation)}18`,
+                      color: getRatioColor(recs.homaIRInterpretation),
+                    }}
+                  >
+                    {recs.homaIRInterpretation}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* TyG */}
+            {recs.tyg !== null && recs.tygInterpretation !== null && (
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <Flame className="w-4 h-4" style={{ color: 'var(--accent)' }} />
+                  <span className="text-[10px] font-bold uppercase tracking-[0.15em]" style={{ color: 'var(--text-tertiary)' }}>
+                    TyG Index
+                  </span>
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <span className="font-display text-2xl" style={{ color: getRatioColor(recs.tygInterpretation) }}>
+                    {recs.tyg}
+                  </span>
+                  <span
+                    className="text-xs font-semibold px-2 py-0.5 rounded-full"
+                    style={{
+                      backgroundColor: `${getRatioColor(recs.tygInterpretation)}18`,
+                      color: getRatioColor(recs.tygInterpretation),
+                    }}
+                  >
+                    {recs.tygInterpretation}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+        ) : null}
+
+        {/* Waist-to-Hip Ratio */}
+        {recs.waistToHipRatio !== null && recs.waistToHipInterpretation !== null && (
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <Scale className="w-4 h-4" style={{ color: 'var(--accent-warm)' }} />
+              <span className="text-[10px] font-bold uppercase tracking-[0.15em]" style={{ color: 'var(--text-tertiary)' }}>
+                Waist-to-Hip Ratio
+              </span>
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span className="font-display text-2xl" style={{ color: getRatioColor(recs.waistToHipInterpretation) }}>
+                {recs.waistToHipRatio}
+              </span>
+              <span
+                className="text-xs font-semibold px-2 py-0.5 rounded-full"
+                style={{
+                  backgroundColor: `${getRatioColor(recs.waistToHipInterpretation)}18`,
+                  color: getRatioColor(recs.waistToHipInterpretation),
+                }}
+              >
+                {recs.waistToHipInterpretation}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Meal Timing */}
+        {recs.mealTiming && recs.mealTiming.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <Utensils className="w-4 h-4" style={{ color: 'var(--accent)' }} />
+              <span className="text-[10px] font-bold uppercase tracking-[0.15em]" style={{ color: 'var(--text-tertiary)' }}>
+                Meal Timing
+              </span>
+            </div>
+            <div className="space-y-2">
+              {recs.mealTiming.map((meal) => (
+                <div
+                  key={meal.meal}
+                  className="flex items-start gap-3 p-3 rounded-xl"
+                  style={{ backgroundColor: 'var(--bg-warm)', border: '1px solid var(--border-light)' }}
+                >
+                  <div className="flex-shrink-0 mt-0.5">
+                    <Clock className="w-3.5 h-3.5" style={{ color: 'var(--text-tertiary)' }} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-baseline gap-2 flex-wrap">
+                      <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{meal.meal}</span>
+                      <span className="text-xs" style={{ color: 'var(--accent)' }}>{meal.time}</span>
+                      <span className="text-xs font-medium" style={{ color: 'var(--text-tertiary)' }}>~{meal.calories} kcal</span>
+                    </div>
+                    <p className="text-xs mt-0.5" style={{ color: 'var(--text-tertiary)' }}>{meal.focus}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Supplements */}
+        {recs.supplements.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <Pill className="w-4 h-4" style={{ color: 'var(--accent)' }} />
+              <span className="text-[10px] font-bold uppercase tracking-[0.15em]" style={{ color: 'var(--text-tertiary)' }}>
+                Suggested Supplements
+              </span>
+            </div>
+            <div className="space-y-2">
+              {recs.supplements.map((sup, i) => (
+                <div
+                  key={`${sup.name}-${i}`}
+                  className="flex items-start gap-3 p-3 rounded-xl"
+                  style={{ backgroundColor: 'var(--bg-warm)', border: '1px solid var(--border-light)' }}
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{sup.name}</span>
+                      <span className="text-xs" style={{ color: 'var(--accent)' }}>{sup.dosage}</span>
+                    </div>
+                    <p className="text-xs mt-0.5" style={{ color: 'var(--text-tertiary)' }}>{sup.reason}</p>
+                    {sup.warning && (
+                      <p className="text-[11px] mt-1.5 font-medium" style={{ color: 'var(--status-warning)' }}>
+                        {sup.warning}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Exercise Suggestions */}
+        {recs.exerciseSuggestions.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <Dumbbell className="w-4 h-4" style={{ color: 'var(--accent-warm)' }} />
+              <span className="text-[10px] font-bold uppercase tracking-[0.15em]" style={{ color: 'var(--text-tertiary)' }}>
+                Exercise Suggestions
+              </span>
+            </div>
+            <ul className="space-y-2">
+              {recs.exerciseSuggestions.map((sug, i) => (
+                <li key={i} className="flex items-start gap-2.5 text-sm" style={{ color: 'var(--text-secondary)' }}>
+                  <span
+                    className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-1.5"
+                    style={{ backgroundColor: 'var(--accent-warm)' }}
+                  />
+                  {sug}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
